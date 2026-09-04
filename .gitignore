@@ -36,3 +36,6 @@ pip-install.log
 # --- Divers ------------------------------------------------------------------
 .DS_Store
 Thumbs.db
+
+# URL de tunnel : ephemere, ne pas versionner
+app/tunnel-url.txt
