@@ -1,0 +1,25 @@
+# Les scans clients ne doivent jamais entrer dans l'image : lots/ est un volume.
+lots/
+tlmcremiseequipe/
+
+# Secrets
+.env
+*/.env
+**/.env
+Login.txt
+**/comptes-utilisateurs.txt
+
+# Environnements et artefacts
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Documentation et outillage inutiles au runtime
+.git/
+.gitignore
+*.md
+*.pdf
+*.html
+tests/

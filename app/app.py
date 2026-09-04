@@ -527,8 +527,18 @@ def reconcilier_statuts_au_demarrage() -> list[str]:
 RX_ENV_A_PURGER = re.compile(r"CLAUDE|ANTHROPIC|BAGGAGE|AI_AGENT|SENTRY")
 
 
+# En conteneur, il n'y a aucune session Claude parente à purger — mais le jeton
+# qui authentifie le CLI porte justement un nom que RX_ENV_A_PURGER attrape
+# (CLAUDE_CODE_OAUTH_TOKEN, ANTHROPIC_API_KEY). Sans exception, l'épuration le
+# supprimerait et tous les jobs échoueraient en 401 sur le serveur.
+# Lister ici, séparés par des virgules, les noms à laisser passer.
+ENV_A_PRESERVER = {v.strip() for v in
+                   os.environ.get("SUSI_ENV_A_PRESERVER", "").split(",") if v.strip()}
+
+
 def _env_epure() -> dict:
-    return {k: v for k, v in os.environ.items() if not RX_ENV_A_PURGER.search(k)}
+    return {k: v for k, v in os.environ.items()
+            if k in ENV_A_PRESERVER or not RX_ENV_A_PURGER.search(k)}
 
 
 # Un `claude -p` n'est pas interactif : toute demande d'approbation est refusée en

@@ -1,0 +1,35 @@
+# susi-bdc sur Fly.io — même région et même stratégie que le projet frère
+# tlmc-remise (machine arrêtée hors usage, réveillée à la première requête).
+
+app = "susi-bdc"
+primary_region = "cdg"
+
+[build]
+
+[env]
+  # Le rendu 150 dpi et le zoom 300/600 dpi sont faits par poppler, installé
+  # dans l'image : pas de chemin à configurer.
+  PYTHONUNBUFFERED = "1"
+  PYTHONIOENCODING = "utf-8"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # une seule machine : le verrou de jobs vit en mémoire, deux instances
+  # pourraient lancer deux jobs de front — ce que SUSI ne supporte pas.
+  min_machines_running = 0
+  max_machines_running = 1
+
+[[mounts]]
+  # Les scans et extraits vivent sur un volume, jamais dans l'image.
+  source = "susi_bdc_lots"
+  destination = "/app/lots"
+
+[[vm]]
+  # L'extraction est dominée par l'attente réseau des appels vision, pas par le
+  # CPU. Une machine modeste suffit ; monter en gamme si l'on parallélise les
+  # lecteurs au-delà de quelques exemplaires.
+  size = "shared-cpu-2x"
+  memory = "2048mb"
