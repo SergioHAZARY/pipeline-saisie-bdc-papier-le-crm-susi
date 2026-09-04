@@ -470,37 +470,70 @@ def charger_commandes(dossier: Path) -> list[dict]:
 # Job runner — `claude -p`, un seul job à la fois
 # --------------------------------------------------------------------------- #
 
-_VERROU = threading.Lock()
-_JOB_ACTIF: str | None = None
-_PROC_ACTIF: subprocess.Popen | None = None   # pour distinguer un job vivant d'un verrou orphelin
+# Le parallélisme se décide par ce que le job TOUCHE, pas par principe.
+#
+#   extraction    — lit des scans, écrit des fichiers. Ne touche jamais SUSI.
+#                   Plusieurs lots peuvent donc s'extraire de front.
+#   saisie        — écrit dans SUSI.  } strictement exclusifs : SUSI rend des
+#   verification  — lit dans SUSI.    } HTTP 500 au-delà de ~80-100 requêtes et
+#                                       ses sessions expirent sous charge.
+#
+# Sérialiser l'extraction revenait à appliquer à tout le pipeline une contrainte
+# qui ne concerne que SUSI.
+GENRES_SUSI = {"saisie", "verification"}
+
+# Chaque extraction lance elle-même jusqu'à 10 sous-agents : la borne évite de
+# saturer la machine et le compte. Réglable sans toucher au code.
+MAX_EXTRACTIONS = max(1, int(os.environ.get("SUSI_EXTRACTIONS_PARALLELES", "3")))
+
+_MUTEX = threading.Lock()                              # protège le registre
+_JOBS: dict[str, subprocess.Popen | None] = {}         # "lot/genre" -> processus
 
 
-def _job_vraiment_vivant() -> bool:
-    """Le verrou protège-t-il un job réel, ou a-t-il fui ?
+def _elaguer_jobs_morts() -> list[str]:
+    """Retire du registre les jobs dont le processus a disparu.
 
-    Le verrou vit en mémoire. Si le processus `claude -p` meurt sans que le
-    thread ait pu relâcher (machine mise en veille, processus tué), le verrou
-    reste pris et **plus aucun job ne peut démarrer** — y compris la relance que
-    le runbook préconise comme réparation. On vérifie donc l'état réel du
-    sous-processus plutôt que de faire confiance au verrou seul.
+    Le registre vit en mémoire : un `claude -p` tué (veille, arrêt brutal) y
+    laisserait une entrée fantôme qui bloquerait les lancements suivants — y
+    compris la relance que le runbook préconise comme réparation.
+    À appeler en tenant `_MUTEX`.
     """
-    return _PROC_ACTIF is not None and _PROC_ACTIF.poll() is None
+    morts = [cle for cle, proc in _JOBS.items() if proc is None or proc.poll() is not None]
+    for cle in morts:
+        del _JOBS[cle]
+    return morts
 
 
-def liberer_verrou_orphelin() -> str | None:
-    """Relâche le verrou si le job qu'il protège n'existe plus. Renvoie le nom du
-    job libéré, ou None s'il n'y avait rien à libérer."""
-    global _JOB_ACTIF, _PROC_ACTIF
-    if _JOB_ACTIF is None or _job_vraiment_vivant():
+def jobs_actifs() -> list[str]:
+    with _MUTEX:
+        _elaguer_jobs_morts()
+        return sorted(_JOBS)
+
+
+def liberer_verrou_orphelin() -> list[str]:
+    """Purge les entrées dont le processus n'existe plus. Renvoie leurs noms."""
+    with _MUTEX:
+        return sorted(_elaguer_jobs_morts())
+
+
+def _place_disponible(cle: str, genre: str) -> str | None:
+    """None si le job peut démarrer, sinon le motif du refus.
+    À appeler en tenant `_MUTEX`, après élagage."""
+    if cle in _JOBS:
+        return f"ce job tourne déjà ({cle})"
+    if genre in GENRES_SUSI:
+        occupe = [c for c in _JOBS if c.rsplit("/", 1)[-1] in GENRES_SUSI]
+        if occupe:
+            return (f"un job SUSI tourne déjà ({occupe[0]}) — SUSI ne supporte pas "
+                    "le parallélisme")
+        # une extraction en cours ne gêne pas : elle ne touche pas SUSI
         return None
-    orphelin = _JOB_ACTIF
-    _JOB_ACTIF = None
-    _PROC_ACTIF = None
-    try:
-        _VERROU.release()
-    except RuntimeError:
-        pass          # déjà relâché : rien à faire
-    return orphelin
+    en_cours = [c for c in _JOBS if c.rsplit("/", 1)[-1] == "extraction"]
+    if len(en_cours) >= MAX_EXTRACTIONS:
+        return (f"{len(en_cours)} extractions tournent déjà (plafond "
+                f"{MAX_EXTRACTIONS}, réglable par SUSI_EXTRACTIONS_PARALLELES) — "
+                f"en cours : {', '.join(sorted(en_cours))}")
+    return None
 
 
 def reconcilier_statuts_au_demarrage() -> list[str]:
@@ -579,8 +612,11 @@ PROMPTS = {
 
 
 def lancer_job(dossier: Path, genre: str) -> tuple[bool, str]:
-    """Démarre un job en tâche de fond. Un seul à la fois, verrou global."""
-    global _JOB_ACTIF
+    """Démarre un job en tâche de fond.
+
+    Les extractions tournent en parallèle (plafonnées) ; les jobs qui touchent
+    SUSI restent strictement exclusifs.
+    """
     if genre not in PROMPTS:
         return False, f"genre de job inconnu : {genre}"
     if genre in ("saisie",) and not (dossier / "validation.json").exists():
@@ -588,17 +624,14 @@ def lancer_job(dossier: Path, genre: str) -> tuple[bool, str]:
     if genre == "verification" and not (dossier / "saisie.log.json").exists():
         return False, "vérification refusée : aucune saisie journalisée"
 
-    if not _VERROU.acquire(blocking=False):
-        # Avant de refuser, vérifier que le verrou protège un job réel. Sinon il a
-        # fui, et le refuser rendrait la relance — la réparation préconisée —
-        # impossible.
-        orphelin = liberer_verrou_orphelin()
-        if orphelin is None:
-            return False, (f"un job tourne déjà ({_JOB_ACTIF}) — "
-                           "SUSI ne supporte pas le parallélisme")
-        print(f"verrou orphelin libere : {orphelin} (processus disparu)", flush=True)
-        _VERROU.acquire(blocking=False)
-    _JOB_ACTIF = f"{dossier.name}/{genre}"
+    cle = f"{dossier.name}/{genre}"
+    with _MUTEX:
+        for mort in _elaguer_jobs_morts():
+            print(f"job fantome elague : {mort} (processus disparu)", flush=True)
+        refus = _place_disponible(cle, genre)
+        if refus:
+            return False, refus
+        _JOBS[cle] = None      # place réservée ; le processus la remplacera
 
     dj = dossier / "jobs"
     dj.mkdir(exist_ok=True)
@@ -623,11 +656,10 @@ def lancer_job(dossier: Path, genre: str) -> tuple[bool, str]:
     # la saisie et la vérification gardent la config par défaut : claude-in-chrome
 
     def _tourner():
-        global _JOB_ACTIF, _PROC_ACTIF
         code = -1
         try:
             with log.open("a", encoding="utf-8") as fl:
-                proc = _PROC_ACTIF = subprocess.Popen(
+                proc = subprocess.Popen(
                     cmd,
                     cwd=str(RACINE),
                     stdin=subprocess.DEVNULL,   # sans ça, hérite du stdin d'uvicorn et se fige
@@ -639,6 +671,8 @@ def lancer_job(dossier: Path, genre: str) -> tuple[bool, str]:
                     errors="replace",
                     bufsize=1,
                 )
+                with _MUTEX:
+                    _JOBS[cle] = proc      # la place réservée reçoit son processus
                 for ligne in proc.stdout:
                     fl.write(ligne)
                     fl.flush()
@@ -652,12 +686,8 @@ def lancer_job(dossier: Path, genre: str) -> tuple[bool, str]:
                  "code": code,
                  "fini": datetime.now().isoformat(timespec="seconds")},
                 ensure_ascii=False), encoding="utf-8")
-            _JOB_ACTIF = None
-            _PROC_ACTIF = None
-            try:
-                _VERROU.release()
-            except RuntimeError:
-                pass      # déjà libéré comme orphelin par un lancement concurrent
+            with _MUTEX:
+                _JOBS.pop(cle, None)
 
     threading.Thread(target=_tourner, daemon=True).start()
     return True, f"job {genre} démarré"
@@ -825,7 +855,12 @@ def voir_lot(nom: str, compte: dict = Depends(compte_courant)):
         alerte += ('<div class="danger">La saisie écrit de <strong>vraies commandes</strong> et de '
                    '<strong>vrais encaissements</strong> dans SUSI. Ne la lancez pas sans supervision.</div>')
 
-    peut = compte["role"] == "admin" and not e["job_en_cours"]
+    # Un job en cours sur CE lot bloque ce lot ; un job SUSI ailleurs ne bloque
+    # que les actions SUSI. Une extraction ailleurs ne bloque rien.
+    admin = compte["role"] == "admin"
+    peut = admin and not e["job_en_cours"]
+    susi_occupe = sante().get("job_susi_en_cours")
+    peut_susi = peut and not susi_occupe
     corps = f"""
 <h2 style="margin:0 0 4px">{nom}</h2>
 <p class="mut">{m.get('date','')} · {m.get('pays','')} · {m.get('type','')} ·
@@ -835,8 +870,9 @@ paiement {m.get('paiement','')} · {m.get('nb_commandes','?')} commandes annonc�
 <div class="bar">
 <form method="post" action="/lot/{nom}/job/extraction"><button class="btn" {"" if peut else "disabled"}>Lancer l'extraction</button></form>
 <form method="post" action="/lot/{nom}/valider"><button class="btn p" {"" if peut and cmds else "disabled"}>Valider le lot</button></form>
-<form method="post" action="/lot/{nom}/job/saisie"><button class="btn" {"" if peut and e["a_validation"] else "disabled"}>Saisir dans SUSI</button></form>
-<form method="post" action="/lot/{nom}/job/verification"><button class="btn" {"" if peut and e["a_saisie"] else "disabled"}>Vérifier</button></form>
+<form method="post" action="/lot/{nom}/job/saisie"><button class="btn" {"" if peut_susi and e["a_validation"] else "disabled"}>Saisir dans SUSI</button></form>
+<form method="post" action="/lot/{nom}/job/verification"><button class="btn" {"" if peut_susi and e["a_saisie"] else "disabled"}>Vérifier</button></form>
+{f'<span class="mut">job SUSI en cours : {susi_occupe}</span>' if susi_occupe else ''}
 <a class="btn" href="/lot/{nom}/log/extraction">Log extraction</a>
 </div>
 <table><tr><th>Cmd</th><th>Client</th><th>Total</th><th>Articles</th><th>Score</th><th>Revue</th></tr>
@@ -1010,32 +1046,36 @@ def api_lot(nom: str, compte: dict = Depends(compte_courant)):
 
 @app.get("/sante")
 def sante():
-    """Diagnostic. `job_actif` rend le verrou global observable : le runbook cite le
-    verrou orphelin (en mémoire, perdu à un redémarrage) comme symptôme connu, et
-    sans ce champ on ne peut pas distinguer « un job tourne » de « le verrou a
-    fui » autrement qu'en tentant un lancement."""
+    """Diagnostic. Rend l'ordonnancement observable : sans ces champs, on ne peut
+    distinguer « des jobs tournent » d'un registre resté sale qu'en tentant un
+    lancement — le symptôme du verrou orphelin cité par le runbook."""
+    actifs = jobs_actifs()
     return {
         "ok": True,
         "pdftoppm": PDFTOPPM,
         "lots": len([d for d in LOTS.iterdir() if d.is_dir()]),
-        "job_actif": _JOB_ACTIF,
-        "verrou_pris": _JOB_ACTIF is not None,
-        "job_vivant": _job_vraiment_vivant(),
-        "verrou_orphelin": _JOB_ACTIF is not None and not _job_vraiment_vivant(),
+        "jobs_actifs": actifs,
+        "extractions_en_cours": len([c for c in actifs
+                                     if c.rsplit("/", 1)[-1] == "extraction"]),
+        "extractions_max": MAX_EXTRACTIONS,
+        "job_susi_en_cours": next((c for c in actifs
+                                   if c.rsplit("/", 1)[-1] in GENRES_SUSI), None),
     }
 
 
 @app.post("/jobs/liberer")
 def liberer(compte: dict = Depends(compte_courant)):
-    """Soupape manuelle : relâche un verrou dont le processus a disparu.
+    """Soupape manuelle : purge les jobs fantômes du registre.
 
     Le lancement d'un job le fait déjà tout seul ; cet endpoint sert au
-    diagnostic et aux cas où l'on veut débloquer sans relancer.
+    diagnostic et aux cas où l'on veut débloquer sans relancer. Les jobs
+    réellement vivants ne sont jamais touchés — les interrompre est une autre
+    décision, qui ne passe pas par ici.
     """
-    orphelin = liberer_verrou_orphelin()
-    if orphelin is None:
-        if _JOB_ACTIF is None:
-            return {"libere": None, "message": "aucun verrou pris"}
-        raise HTTPException(409, f"le job {_JOB_ACTIF} tourne réellement — "
-                                 "l'interrompre plutôt que de forcer le verrou")
-    return {"libere": orphelin, "message": "verrou orphelin relâché"}
+    fantomes = liberer_verrou_orphelin()
+    restants = jobs_actifs()
+    if not fantomes:
+        return {"liberes": [], "actifs": restants,
+                "message": "aucun job fantôme" if restants else "aucun job en cours"}
+    return {"liberes": fantomes, "actifs": restants,
+            "message": f"{len(fantomes)} job(s) fantôme(s) purgé(s)"}
