@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tlmc-ui",
+      "runtimeExecutable": "/Users/djisse/tlmc-remise/.venv/bin/python",
+      "runtimeArgs": ["-m", "uvicorn", "app:app", "--port", "8742", "--app-dir", "/Users/djisse/tlmc-remise"],
+      "port": 8742
+    }
+  ]
+}

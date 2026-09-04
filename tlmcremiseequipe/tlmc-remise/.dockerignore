@@ -1,0 +1,12 @@
+.venv/
+scans/
+rejets/
+sortie/
+spec/*.pdf
+.env
+__pycache__/
+tests/
+sessions/*/scans/
+sessions/ftp-*
+sessions/agent_ftp
+sessions/*.log

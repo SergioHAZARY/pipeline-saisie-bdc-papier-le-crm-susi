@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+ :root{color-scheme:light}
+ html,body{margin:0}
+ img{max-width:100%}
+ @page{size:A4;margin:14mm 12mm}
+ @media print{
+   .wrap{max-width:none;padding:0}
+   .phase{break-inside:auto;page-break-inside:auto}
+   .phase-head{break-after:avoid;page-break-after:avoid}
+   ol.steps > li, .note, .check, .table-wrap{break-inside:avoid;page-break-inside:avoid}
+   pre{white-space:pre-wrap;word-break:break-word}
+   a{color:#17557F;text-decoration:none}
+ }
+</style>
+</head><body>
+<title>Runbook de mise en route susi-bdc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --paper:#F1F3F2;
+    --surface:#FFFFFF;
+    --surface-2:#E9ECEC;
+    --ink:#151A1C;
+    --muted:#5C676B;
+    --line:#D2D8D8;
+    --accent:#17557F;
+    --accent-soft:#E2ECF3;
+    --ok:#1C6B45;
+    --ok-soft:#DFEEE7;
+    --warn:#8A5300;
+    --warn-soft:#F6E9D5;
+    --danger:#A32B20;
+    --danger-soft:#F6E1DE;
+    --code-bg:#EDF0F0;
+    --shadow:0 1px 2px rgba(21,26,28,.06), 0 8px 24px -16px rgba(21,26,28,.35);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0F1315;
+      --surface:#161B1E;
+      --surface-2:#1E2528;
+      --ink:#E7ECEC;
+      --muted:#98A5A9;
+      --line:#2A3336;
+      --accent:#78B4DE;
+      --accent-soft:#17272F;
+      --ok:#6FC79B;
+      --ok-soft:#152720;
+      --warn:#DFAB5E;
+      --warn-soft:#2A2116;
+      --danger:#EE8B7F;
+      --danger-soft:#2C1917;
+      --code-bg:#1B2225;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0F1315;
+    --surface:#161B1E;
+    --surface-2:#1E2528;
+    --ink:#E7ECEC;
+    --muted:#98A5A9;
+    --line:#2A3336;
+    --accent:#78B4DE;
+    --accent-soft:#17272F;
+    --ok:#6FC79B;
+    --ok-soft:#152720;
+    --warn:#DFAB5E;
+    --warn-soft:#2A2116;
+    --danger:#EE8B7F;
+    --danger-soft:#2C1917;
+    --code-bg:#1B2225;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.8);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size:16px;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:40px 24px 96px}
+  code, kbd, pre{font-family:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace}
+  code{background:var(--code-bg);padding:.1em .38em;border-radius:3px;font-size:.86em;color:var(--ink)}
+  kbd{background:var(--surface);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:.05em .4em;font-size:.8em}
+  pre{
+    background:var(--code-bg);border:1px solid var(--line);border-radius:6px;
+    padding:14px 16px;overflow-x:auto;font-size:13.5px;line-height:1.7;margin:0;
+  }
+  pre code{background:none;padding:0;font-size:inherit}
+  a{color:var(--accent)}
+  a:focus-visible, summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+
+  /* ---------- header ---------- */
+  .eyebrow{
+    font-family:"Archivo",sans-serif;font-weight:700;font-size:11.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--accent);margin:0 0 14px
+  }
+  h1{
+    font-family:"Archivo",sans-serif;font-weight:800;font-size:clamp(34px,5.2vw,52px);
+    line-height:1.04;letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance
+  }
+  .lede{font-size:18px;color:var(--muted);max-width:62ch;margin:0}
+  .meta{
+    display:flex;flex-wrap:wrap;gap:10px;margin-top:26px;padding-top:22px;border-top:1px solid var(--line)
+  }
+  .pill{
+    display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;
+    padding:5px 11px;border-radius:999px;background:var(--surface-2);color:var(--muted);
+    border:1px solid var(--line)
+  }
+  .pill.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+  .pill.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+  .pill.danger{background:var(--danger-soft);color:var(--danger);border-color:transparent}
+
+  /* ---------- sommaire ---------- */
+  .toc{margin-top:40px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:20px 22px;box-shadow:var(--shadow)}
+  .toc h2{font-family:"Archivo",sans-serif;font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:0 0 14px;font-weight:700}
+  .toc ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:2px 22px}
+  .toc li{display:flex;gap:10px;align-items:baseline;padding:4px 0;font-size:14.5px}
+  .toc .n{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);font-weight:500;min-width:1.6em}
+  .toc a{text-decoration:none;color:var(--ink)}
+  .toc a:hover{text-decoration:underline}
+
+  /* ---------- phases ---------- */
+  .phase{margin-top:56px;scroll-margin-top:20px}
+  .phase-head{display:flex;gap:16px;align-items:flex-start;border-top:2px solid var(--ink);padding-top:16px}
+  .phase-num{
+    font-family:"Archivo",sans-serif;font-weight:800;font-size:13px;letter-spacing:.06em;
+    background:var(--ink);color:var(--paper);padding:3px 9px;border-radius:4px;margin-top:6px;flex:none
+  }
+  .phase-head h2{font-family:"Archivo",sans-serif;font-weight:700;font-size:clamp(22px,3vw,28px);line-height:1.18;letter-spacing:-.015em;margin:0;text-wrap:balance}
+  .phase-head .sub{margin:6px 0 0;color:var(--muted);font-size:14.5px}
+  .phase > p, .phase > ol, .phase > ul{max-width:70ch}
+  .phase h3{
+    font-family:"Archivo",sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--muted);margin:30px 0 10px
+  }
+  ol.steps{counter-reset:s;list-style:none;padding:0;margin:18px 0 0}
+  ol.steps > li{
+    counter-increment:s;position:relative;padding:0 0 0 38px;margin:0 0 20px
+  }
+  ol.steps > li::before{
+    content:counter(s);position:absolute;left:0;top:1px;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;
+    width:24px;height:24px;display:grid;place-items:center;
+    border:1px solid var(--line);border-radius:50%;color:var(--accent);background:var(--surface)
+  }
+  ol.steps > li > *:first-child{margin-top:0}
+  ol.steps pre{margin-top:10px}
+  ul.tight{margin:10px 0 0;padding-left:20px}
+  ul.tight li{margin:5px 0}
+  .strong{font-weight:600}
+
+  /* ---------- callouts ---------- */
+  .note{
+    margin:22px 0 0;padding:16px 18px;border-radius:6px;background:var(--surface);
+    border:1px solid var(--line);border-left:3px solid var(--accent);font-size:15px
+  }
+  .note.stop{border-left-color:var(--danger);background:var(--danger-soft)}
+  .note.watch{border-left-color:var(--warn);background:var(--warn-soft)}
+  .note .lbl{
+    display:block;font-family:"Archivo",sans-serif;font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;font-weight:700;margin-bottom:6px;color:var(--accent)
+  }
+  .note.stop .lbl{color:var(--danger)}
+  .note.watch .lbl{color:var(--warn)}
+  .note p{margin:0}
+  .note p + p{margin-top:8px}
+
+  /* ---------- checklist ---------- */
+  .check{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .check li{background:var(--surface);padding:11px 15px;display:flex;gap:11px;align-items:flex-start;font-size:15px}
+  .check li::before{content:"";flex:none;width:15px;height:15px;margin-top:4px;border:1.5px solid var(--accent);border-radius:3px}
+
+  /* ---------- table ---------- */
+  .table-wrap{overflow-x:auto;margin-top:16px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+  th{
+    text-align:left;font-family:"Archivo",sans-serif;font-size:11px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);font-weight:700;padding:12px 15px;border-bottom:1px solid var(--line);white-space:nowrap
+  }
+  td{padding:12px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:13.5px;max-width:70ch}
+  @media (max-width:560px){
+    .wrap{padding:28px 16px 72px}
+    .phase-head{gap:12px}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">Runbook opérationnel · susi-bdc · Atlas For Men</p>
+  <h1>De zéro à la première commande saisie dans SUSI</h1>
+  <p class="lede">Neuf phases, dans l'ordre. Les phases 0 à 4 sont sans risque et se font seul&nbsp;; à partir de la phase 5 on touche à SUSI et rien ne se fait sans Djibril. Le lot réel n'est saisi qu'en phase 8.</p>
+
+  <div class="meta">
+    <span class="pill ok">Phases 0–4 · sans risque</span>
+    <span class="pill warn">Phases 5–7 · supervision obligatoire</span>
+    <span class="pill danger">Phase 8 · écritures réelles</span>
+    <span class="pill">Durée première boucle ≈ 1 journée</span>
+  </div>
+
+  <nav class="toc">
+    <h2>Le parcours</h2>
+    <ol>
+      <li><span class="n">00</span><a href="#p0">Lire le métier avant de coder</a></li>
+      <li><span class="n">01</span><a href="#p1">Monter la machine hôte</a></li>
+      <li><span class="n">02</span><a href="#p2">Installer le pipeline</a></li>
+      <li><span class="n">03</span><a href="#p3">Démarrer la plateforme</a></li>
+      <li><span class="n">04</span><a href="#p4">Boucle à blanc sur le mini-lot</a></li>
+      <li><span class="n">05</span><a href="#p5">Préparer l'accès SUSI</a></li>
+      <li><span class="n">06</span><a href="#p6">Première saisie supervisée</a></li>
+      <li><span class="n">07</span><a href="#p7">Vérification post-saisie</a></li>
+      <li><span class="n">08</span><a href="#p8">Passer le lot réel 50CH1</a></li>
+      <li><span class="n">09</span><a href="#p9">Durcir avant la production</a></li>
+    </ol>
+  </nav>
+
+  <!-- ============ PHASE 0 ============ -->
+  <section class="phase" id="p0">
+    <div class="phase-head">
+      <span class="phase-num">00</span>
+      <div>
+        <h2>Lire le métier avant de toucher au code</h2>
+        <p class="sub">2 heures · seul · aucun outil à installer</p>
+      </div>
+    </div>
+
+    <p>Tout le pipeline découle du manuel de saisie. Si vous démarrez la machine avant d'avoir lu ce document, vous ne saurez pas juger si une extraction est juste.</p>
+
+    <ol class="steps">
+      <li>
+        <p>Lire <code>susi-bdc/manuel-commandes-rapides.md</code> <span class="strong">en entier</span>, en particulier la page 16 : deux chèques, chèque absent → OA, contre-remboursement → OA, espèces → ne pas saisir.</p>
+      </li>
+      <li>
+        <p>Retenir la grammaire des noms de fichiers, elle est utilisée partout&nbsp;:</p>
+        <pre><code>28082026FR_ATLAS_III_FID_50CH1.pdf
+│        │  │          │   │
+│        │  │          │   └─ 50 commandes, liasse n°1, avec chèque (OA = sans paiement)
+│        │  │          └───── FID = client connu · RECRUT = nouveau client
+│        │  └──────────────── campagne / support
+│        └─────────────────── pays
+└──────────────────────────── date du lot</code></pre>
+        <p style="margin-top:10px">Et la règle de pagination du scan : <span class="strong">pages impaires = chèques, pages paires = BDC</span>.</p>
+      </li>
+      <li>
+        <p>Parcourir <code>~/.claude/skills/susi-saisie-bdc/SKILL.md</code> : c'est la spec de référence des 7 phases. Les prompts des jobs de la plateforme y renvoient — un écart entre l'app et le skill est toujours un bug de l'app.</p>
+      </li>
+    </ol>
+
+    <div class="note">
+      <span class="lbl">Repère</span>
+      <p>Le dossier d'un lot est la seule source de vérité. Il n'y a pas de base de données : l'état affiché dans l'UI est recalculé depuis les fichiers par <code>etat_lot()</code>. Supprimer un fichier, c'est revenir en arrière dans le pipeline.</p>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 1 ============ -->
+  <section class="phase" id="p1">
+    <div class="phase-head">
+      <span class="phase-num">01</span>
+      <div>
+        <h2>Monter la machine hôte</h2>
+        <p class="sub">30 min · macOS obligatoire (Claude-in-Chrome + session SUSI)</p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <p>Récupérer le dépôt et les agents. Le code seul ne suffit pas — les trois agents et le skill vivent hors du dépôt&nbsp;:</p>
+        <pre><code>/Users/djisse/susi-bdc            # le dépôt
+~/.claude/agents/bdc-lecteur.md
+~/.claude/agents/susi-saisisseur.md
+~/.claude/agents/susi-verificateur.md
+~/.claude/skills/susi-saisie-bdc/ # la spec du pipeline</code></pre>
+        <p style="margin-top:10px">Sur une autre machine que celle de Djibril, ces quatre chemins sont à copier tels quels.</p>
+      </li>
+      <li>
+        <p>Installer poppler, utilisé pour le rendu des scans en 300 dpi&nbsp;:</p>
+        <pre><code>brew install poppler
+pdftoppm -v          # doit répondre</code></pre>
+      </li>
+      <li>
+        <p>Connecter le CLI Claude Code — <span class="strong">sans sudo</span>, sinon la session s'installe dans le mauvais compte&nbsp;:</p>
+        <pre><code>claude /login
+claude -p "ok" --output-format text   # doit répondre "ok"</code></pre>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ PHASE 2 ============ -->
+  <section class="phase" id="p2">
+    <div class="phase-head">
+      <span class="phase-num">02</span>
+      <div>
+        <h2>Installer le pipeline et ses comptes</h2>
+        <p class="sub">15 min · un seul fichier applicatif, <code>app/app.py</code></p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <p>Créer <code>app/.env</code> (non versionné — demander les identifiants à Djibril plutôt que d'en inventer). Format&nbsp;:</p>
+        <pre><code>SUSI_BDC_UTILISATEURS=nom:mdp:role,nom2:mdp2:role2
+# rôles disponibles : admin | viewer</code></pre>
+        <p style="margin-top:10px">Si le fichier est vide, un compte admin est auto-généré au premier démarrage et affiché en console — le noter, il ne sera pas réaffiché.</p>
+      </li>
+      <li>
+        <p>Vérifier que le dossier <code>lots/</code> contient bien les deux lots de référence&nbsp;:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Lot</th><th>Contenu</th><th>Usage</th></tr></thead>
+            <tbody>
+              <tr><td><code>29082026FR_ATLAS_III_FID_2CH9</code></td><td class="num">4 pages · 2 commandes</td><td>mini-lot de test, déjà extrait</td></tr>
+              <tr><td><code>28082026FR_ATLAS_III_FID_50CH1</code></td><td class="num">50 commandes · 2&nbsp;396,58&nbsp;€</td><td>lot réel, extrait, <span class="strong">en attente de revue</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </li>
+    </ol>
+
+    <div class="note stop">
+      <span class="lbl">Ne pas toucher</span>
+      <p>Le lot <code>50CH1</code> est du réel : 50 vraies commandes et 50 vrais encaissements. Il sert de support d'apprentissage en lecture seule jusqu'à la phase 8.</p>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 3 ============ -->
+  <section class="phase" id="p3">
+    <div class="phase-head">
+      <span class="phase-num">03</span>
+      <div>
+        <h2>Démarrer la plateforme</h2>
+        <p class="sub">5 min · FastAPI sur le port 8760</p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <p>Lancer le serveur&nbsp;:</p>
+        <pre><code>/Users/djisse/susi-bdc/app/start.sh    # http://0.0.0.0:8760</code></pre>
+      </li>
+      <li>
+        <p>Si l'accès doit être partagé, ouvrir le tunnel — <span class="strong">l'URL Cloudflare change à chaque lancement</span>, ne la mettez pas dans un favori ni dans une doc&nbsp;:</p>
+        <pre><code>/Users/djisse/susi-bdc/app/tunnel.sh</code></pre>
+      </li>
+      <li>
+        <p>Se connecter (auth HTTP Basic, même schéma que la plateforme TLMC) et vérifier que les deux lots apparaissent avec le bon statut.</p>
+      </li>
+    </ol>
+
+    <div class="note watch">
+      <span class="lbl">Symptôme connu</span>
+      <p>Un job qui reste bloqué en <code>en_cours</code> après un redémarrage n'est pas perdu : le verrou est en mémoire, l'orphelin se répare simplement en relançant le job.</p>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 4 ============ -->
+  <section class="phase" id="p4">
+    <div class="phase-head">
+      <span class="phase-num">04</span>
+      <div>
+        <h2>Boucle à blanc sur le mini-lot</h2>
+        <p class="sub">10 min · aucune interaction avec SUSI</p>
+      </div>
+    </div>
+
+    <p>Objectif : voir tourner extraction → revue → validation de bout en bout, et apprendre à lire un score avant de devoir en juger 50 d'affilée.</p>
+
+    <ol class="steps">
+      <li>
+        <p>Repartir de zéro sur <code>2CH9</code> en supprimant les sorties déjà présentes&nbsp;:</p>
+        <pre><code>extraits/*   lot.json   recap.md   jobs/*</code></pre>
+      </li>
+      <li>
+        <p>Lancer <span class="strong">Extraction</span> et suivre le log en direct (5 à 7 min) : vous devez voir la session s'ouvrir, les sous-agents partir, puis la consolidation.</p>
+      </li>
+      <li>
+        <p>Ouvrir la <span class="strong">Revue</span> : deux commandes, avec leurs scores et leurs anomalies (chèque de tiers, case paiement non cochée…). Ouvrir une commande, comparer le scan affiché face au formulaire, corriger un champ, « Enregistrer ».</p>
+      </li>
+      <li>
+        <p>Cliquer <span class="strong">Valider le lot</span>. <code>validation.json</code> apparaît et l'étape Saisie se déverrouille.</p>
+      </li>
+    </ol>
+
+    <h3>Lire un score de confiance</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Score</th><th>Signification</th><th>Geste</th></tr></thead>
+        <tbody>
+          <tr><td class="num">≥ 90</td><td>OK</td><td>survol rapide</td></tr>
+          <tr><td class="num">70 – 89</td><td>à vérifier</td><td>rouvrir le scan sur les champs signalés</td></tr>
+          <tr><td class="num">&lt; 70</td><td>review obligatoire</td><td>ressaisie manuelle du bloc</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px">Le pré-saisie part de 100 et retranche : arithmétique lignes+frais ≠ total −40, chèque ≠ total −40, refco illisible −25, confiance basse/moyenne par article −20/−10, anomalies −5 chacune (plafond −20). Le post-saisie a son propre barème, appliqué par l'agent de vérification.</p>
+
+    <div class="note stop">
+      <span class="lbl">Arrêt de sécurité</span>
+      <p><span class="strong">S'arrêter ici</span> tant que la première saisie supervisée n'a pas eu lieu. La bascule vers SUSI ne se fait pas seul, quel que soit le lot.</p>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 5 ============ -->
+  <section class="phase" id="p5">
+    <div class="phase-head">
+      <span class="phase-num">05</span>
+      <div>
+        <h2>Préparer l'accès SUSI</h2>
+        <p class="sub">20 min · avec Djibril · rien n'est encore saisi</p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <p>Activer le VPN AFM, puis ouvrir SUSI <span class="strong">dans le Chrome de la machine</span> : <code>http://10.210.0.20/AFM/APP/SUSI/</code>.</p>
+      </li>
+      <li>
+        <p>Ouvrir la session applicative avec le login <code>AA_AFM_100</code>. C'est <span class="strong">l'humain</span> qui se connecte : les agents ne saisissent jamais d'identifiants ni de mot de passe, ils reprennent une session déjà ouverte.</p>
+      </li>
+      <li>
+        <p>Vérifier l'intégration Chrome de Claude (outils <code>claude-in-chrome</code>) sur cet onglet.</p>
+      </li>
+      <li>
+        <p>Faire à la main, humainement, <span class="strong">une</span> commande dans « Saisie commande rapide » — <kbd>F5</kbd> créer un lot, <kbd>TAB</kbd> entre champs, <kbd>F4</kbd> bloc suivant, <kbd>Echap</kbd> clôturer — pour confirmer que les raccourcis du manuel correspondent bien à l'UI réelle. C'est exactement ce que l'agent n'a jamais vu.</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ PHASE 6 ============ -->
+  <section class="phase" id="p6">
+    <div class="phase-head">
+      <span class="phase-num">06</span>
+      <div>
+        <h2>Première saisie supervisée</h2>
+        <p class="sub">Le moment critique · mini-lot 2CH9 · main sur l'échappement</p>
+      </div>
+    </div>
+
+    <p>On lance <code>susi-saisisseur</code> sur les 2 commandes du mini-lot, en regardant l'écran champ par champ. Un seul exemplaire de l'agent, jamais deux en parallèle.</p>
+
+    <ul class="check">
+      <li>VPN actif, session SUSI ouverte dans Chrome, bon utilisateur</li>
+      <li>Lot validé : <code>validation.json</code> présent</li>
+      <li>Un seul <code>susi-saisisseur</code> lancé, aucune autre session Claude sur SUSI</li>
+      <li>Djibril présent, écran partagé, prêt à interrompre</li>
+      <li><code>saisie.log.json</code> ouvert en parallèle pour suivre la reprise</li>
+    </ul>
+
+    <ol class="steps">
+      <li>
+        <p>Lancer la Saisie depuis l'app — ou, en session Claude Code, glisser le PDF du lot et dire « traite mes bdc » : le skill <code>susi-saisie-bdc</code> se déclenche et écrit le même état sur disque.</p>
+      </li>
+      <li>
+        <p>Regarder la <span class="strong">première</span> commande en entier sans rien faire d'autre. Vérifier l'ordre des champs, le comportement de <kbd>F4</kbd>, la clôture.</p>
+      </li>
+      <li>
+        <p>Interrompre au moindre écart et noter ce qui diffère du manuel. Ces écarts sont la matière de la mise à jour de <code>susi-saisisseur.md</code> — le manuel est théorique, l'UI est la vérité.</p>
+      </li>
+      <li>
+        <p>Laisser passer la seconde commande, puis mettre à jour la passation : l'état « jamais exécuté » n'est plus vrai.</p>
+      </li>
+    </ol>
+
+    <div class="note watch">
+      <span class="lbl">Contraintes de la plateforme</span>
+      <p>SUSI supporte environ 80 à 100 requêtes puis renvoie des HTTP 500, et les sessions expirent sous charge. D'où la règle : un seul job à la fois, verrou global, saisie strictement séquentielle.</p>
+    </div>
+  </section>
+
+  <!-- ============ PHASE 7 ============ -->
+  <section class="phase" id="p7">
+    <div class="phase-head">
+      <span class="phase-num">07</span>
+      <div>
+        <h2>Vérification post-saisie</h2>
+        <p class="sub">Toujours sur le mini-lot, avant d'aller plus loin</p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <p>Lancer <code>susi-verificateur</code> : lecture seule, il compare le rapport Excel SUSI et le détail UI au <span class="strong">scan d'origine</span> — jamais au JSON d'extraction, sinon une erreur de lecture se confirmerait elle-même.</p>
+      </li>
+      <li>
+        <p>Ouvrir <code>verification.json</code> / <code>review.md</code>, trié par score croissant. Barème : écart montant −40, article faux −25, mauvais client −30, commande absente ou en double = 0.</p>
+      </li>
+      <li>
+        <p>Traiter les commandes en tête de liste dans SUSI, à la main.</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ============ PHASE 8 ============ -->
+  <section class="phase" id="p8">
+    <div class="phase-head">
+      <span class="phase-num">08</span>
+      <div>
+        <h2>Passer le lot réel 50CH1</h2>
+        <p class="sub">50 commandes · 2 396,58 € · uniquement après un mini-lot propre</p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <p><span class="strong">Revue complète</span> des 50 commandes. Compter environ 16 min d'extraction déjà faites ; la revue est le poste humain le plus long.</p>
+      </li>
+      <li>
+        <p>Écarter explicitement la <span class="strong">commande 26</span> : c'est un double passage scanner (même chèque CMC7, même BDC que la paire voisine), pas une seconde commande.</p>
+      </li>
+      <li>
+        <p>Contrôler les doublons restants sur les lignes CMC7 et les n° clients avant de valider — le contrôle est aujourd'hui fait par l'agent, pas encore de façon déterministe.</p>
+      </li>
+      <li>
+        <p>Recroiser les refco extraites avec le référentiel (atlasformen.fr ou export SUSI). Cas déjà vu : KB179 lu pour K8179.</p>
+      </li>
+      <li>
+        <p>Valider, saisir, vérifier — dans cet ordre, sans jamais paralléliser.</p>
+      </li>
+    </ol>
+
+    <h3>Les erreurs métier à traquer en revue</h3>
+    <ul class="tight">
+      <li>Sur un chèque, les <span class="strong">lettres font foi</span> pour le montant ; sur un BDC, le total se recalcule depuis les lignes.</li>
+      <li>Confusions manuscrites classiques : 0/O, 1/1, 2/2, 5/5, B/8 sur les refco.</li>
+      <li>Scans à 180° — le rendu peut être à l'envers sans que le score s'en aperçoive.</li>
+      <li>Cas manuel p. 16 : deux chèques, chèque absent → OA, contre-remboursement → OA, espèces → ne pas saisir.</li>
+    </ul>
+  </section>
+
+  <!-- ============ PHASE 9 ============ -->
+  <section class="phase" id="p9">
+    <div class="phase-head">
+      <span class="phase-num">09</span>
+      <div>
+        <h2>Durcir avant d'en faire de la production</h2>
+        <p class="sub">Après le premier run réussi, dans cet ordre de priorité</p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li><p><span class="strong">Systématiser la validation des refco</span> au catalogue dès l'extraction, dans la phase 3 ou dans l'app.</p></li>
+      <li><p><span class="strong">Détection de doublons déterministe</span> dans <code>score_extraction()</code> / la consolidation : comparer lignes CMC7 et n° clients entre commandes d'un lot.</p></li>
+      <li><p><span class="strong">Plateforme</span> : comptes nominatifs par membre, tunnel stable (Cloudflare nommé ou Tailscale à la place de l'éphémère), file de jobs persistante pour que le verrou survive à un restart.</p></li>
+      <li><p><span class="strong">Tests</span> : rien n'est couvert. Commencer par <code>score_extraction()</code>, le parsing de nom de lot (<code>RX_NOM</code>) et <code>_lignes_lisibles()</code>.</p></li>
+    </ol>
+
+    <h3>Pièges déjà payés — ne pas les réapprendre</h3>
+    <ul class="tight">
+      <li><code>stdin=subprocess.DEVNULL</code> est obligatoire sur le <code>claude -p</code> du job runner, sinon il hérite du stdin d'uvicorn et se fige (constaté : 3 h à 0 % CPU).</li>
+      <li>Épurer l'environnement avant de lancer <code>claude -p</code> depuis un process lancé par une session Claude (regex <code>CLAUDE|ANTHROPIC|BAGGAGE|AI_AGENT|SENTRY</code>) : les variables héritées court-circuitent l'auth → 401.</li>
+      <li><code>--mcp-config</code> exige <code>{"mcpServers": {}}</code>, pas <code>{}</code>. L'extraction tourne en <code>--strict-mcp-config</code> ; la saisie garde la config par défaut, il lui faut claude-in-chrome.</li>
+      <li><code>--output-format stream-json --verbose</code> + parsing ligne à ligne pour un log visible en direct ; en <code>text</code>, rien ne sort avant la fin.</li>
+      <li><code>pdftoppm</code> adapte le zéro-padding au nombre de pages : renommer systématiquement en <code>p_NNN.jpg</code>, sinon le tri lexicographique casse.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Runbook dérivé de la passation susi-bdc du 03/09/2026. Les phases 0 à 4 reflètent des briques testées (upload, extraction, revue, validation, logs) ; les phases 6 et 7 décrivent une chaîne <span class="strong">jamais exécutée</span> à cette date. Mettez ce document à jour dès la première saisie réelle.
+  </footer>
+
+</div>
+
+</body></html>

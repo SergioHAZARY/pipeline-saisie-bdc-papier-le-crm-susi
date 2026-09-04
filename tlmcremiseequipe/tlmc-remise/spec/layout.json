@@ -1,0 +1,335 @@
+{
+  "_commentaire": "Format standard TLMC V1 320c (doc officielle) validé sur 11 fichiers réels OUTSOURCIA/BRED. Enregistrements 320 caractères + CR. 03 entête / 04 détail / 08 total. Positions clés (1-based) : entête·total = SIRET remettant [54-67] (14, optionnel), réf. bordereau [68-74] (7 — la série 000xxx y met son n° de remise), réf. remise remettant [111-134] (24), type '2' + RIB [135-169], EUR [170-172] ; détail = CMC7 n°chèque [20-26] / ZIB [27-38] / ZIN [39-50], réf. chèque remettant [94-117] (24), montant centimes [118-129], code annulation [130], saisie manuelle [131] + clé RLMC [132-133] ; total = montant [173-184], indicateur ajusté [185], nombre de chèques [186-190] (5).",
+  "longueur_enregistrement": 320,
+  "fin_de_ligne": "\r",
+  "parametres": {
+    "code_operation": "CH",
+    "banque_libelle": "BRED",
+    "numero_remise": "005278",
+    "rib_credite": "10107001300022106777673",
+    "devise": "EUR",
+    "reference_base": 300000,
+    "siret_remettant": "",
+    "type_identifiant": "2"
+  },
+  "enregistrements": {
+    "entete": [
+      {
+        "nom": "code",
+        "type": "an",
+        "longueur": 2,
+        "valeur": "03"
+      },
+      {
+        "nom": "operation",
+        "type": "an",
+        "longueur": 2,
+        "source": "code_operation"
+      },
+      {
+        "nom": "sequence",
+        "type": "n",
+        "longueur": 6,
+        "source": "sequence"
+      },
+      {
+        "nom": "date",
+        "type": "n",
+        "longueur": 8,
+        "source": "date_remise_aaaammjj"
+      },
+      {
+        "nom": "raison_sociale",
+        "type": "an",
+        "longueur": 35,
+        "source": "banque_libelle"
+      },
+      {
+        "nom": "siret",
+        "type": "an",
+        "longueur": 14,
+        "source": "siret_remettant"
+      },
+      {
+        "nom": "ref_bordereau",
+        "type": "n",
+        "longueur": 7,
+        "source": "numero_remise_7"
+      },
+      {
+        "nom": "ref_rappro_z3",
+        "type": "an",
+        "longueur": 12,
+        "valeur": ""
+      },
+      {
+        "nom": "ref_rappro_z2",
+        "type": "an",
+        "longueur": 12,
+        "valeur": ""
+      },
+      {
+        "nom": "ref_rappro_z1",
+        "type": "an",
+        "longueur": 12,
+        "valeur": ""
+      },
+      {
+        "nom": "zeros_ref_remise",
+        "type": "n",
+        "longueur": 18,
+        "valeur": "0"
+      },
+      {
+        "nom": "num_remise",
+        "type": "n",
+        "longueur": 6,
+        "source": "numero_remise"
+      },
+      {
+        "nom": "type_identifiant",
+        "type": "n",
+        "longueur": 1,
+        "source": "type_identifiant"
+      },
+      {
+        "nom": "rib",
+        "type": "an",
+        "longueur": 34,
+        "source": "rib_credite"
+      },
+      {
+        "nom": "devise",
+        "type": "an",
+        "longueur": 3,
+        "source": "devise"
+      },
+      {
+        "nom": "reserve",
+        "type": "an",
+        "longueur": 148,
+        "valeur": ""
+      }
+    ],
+    "detail": [
+      {
+        "nom": "code",
+        "type": "an",
+        "longueur": 2,
+        "valeur": "04"
+      },
+      {
+        "nom": "operation",
+        "type": "an",
+        "longueur": 2,
+        "source": "code_operation"
+      },
+      {
+        "nom": "sequence",
+        "type": "n",
+        "longueur": 6,
+        "source": "sequence"
+      },
+      {
+        "nom": "date_compl",
+        "type": "an",
+        "longueur": 8,
+        "valeur": ""
+      },
+      {
+        "nom": "reserve1",
+        "type": "an",
+        "longueur": 1,
+        "valeur": ""
+      },
+      {
+        "nom": "cmc7_z4_cheque",
+        "type": "n",
+        "longueur": 7,
+        "source": "numero_cheque"
+      },
+      {
+        "nom": "cmc7_z3_zib",
+        "type": "n",
+        "longueur": 12,
+        "source": "zone_interbancaire"
+      },
+      {
+        "nom": "cmc7_z2_zin",
+        "type": "n",
+        "longueur": 12,
+        "source": "numero_compte"
+      },
+      {
+        "nom": "zone_banque",
+        "type": "an",
+        "longueur": 35,
+        "valeur": ""
+      },
+      {
+        "nom": "date_transac",
+        "type": "an",
+        "longueur": 8,
+        "valeur": ""
+      },
+      {
+        "nom": "reference",
+        "type": "n",
+        "longueur": 24,
+        "source": "reference_cheque"
+      },
+      {
+        "nom": "montant",
+        "type": "n",
+        "longueur": 12,
+        "source": "montant_centimes"
+      },
+      {
+        "nom": "code_annul",
+        "type": "an",
+        "longueur": 1,
+        "valeur": ""
+      },
+      {
+        "nom": "saisie_manuelle",
+        "type": "n",
+        "longueur": 1,
+        "valeur": "0"
+      },
+      {
+        "nom": "cle_rlmc",
+        "type": "an",
+        "longueur": 2,
+        "valeur": ""
+      },
+      {
+        "nom": "ref_paiement",
+        "type": "an",
+        "longueur": 31,
+        "valeur": ""
+      },
+      {
+        "nom": "reserve2",
+        "type": "an",
+        "longueur": 156,
+        "valeur": ""
+      }
+    ],
+    "total": [
+      {
+        "nom": "code",
+        "type": "an",
+        "longueur": 2,
+        "valeur": "08"
+      },
+      {
+        "nom": "operation",
+        "type": "an",
+        "longueur": 2,
+        "source": "code_operation"
+      },
+      {
+        "nom": "sequence",
+        "type": "n",
+        "longueur": 6,
+        "source": "nombre_enregistrements"
+      },
+      {
+        "nom": "date",
+        "type": "n",
+        "longueur": 8,
+        "source": "date_remise_aaaammjj"
+      },
+      {
+        "nom": "raison_sociale",
+        "type": "an",
+        "longueur": 35,
+        "source": "banque_libelle"
+      },
+      {
+        "nom": "siret",
+        "type": "an",
+        "longueur": 14,
+        "source": "siret_remettant"
+      },
+      {
+        "nom": "ref_bordereau",
+        "type": "n",
+        "longueur": 7,
+        "source": "numero_remise_7"
+      },
+      {
+        "nom": "ref_rappro_z3",
+        "type": "an",
+        "longueur": 12,
+        "valeur": ""
+      },
+      {
+        "nom": "ref_rappro_z2",
+        "type": "an",
+        "longueur": 12,
+        "valeur": ""
+      },
+      {
+        "nom": "ref_rappro_z1",
+        "type": "an",
+        "longueur": 12,
+        "valeur": ""
+      },
+      {
+        "nom": "zeros_ref_remise",
+        "type": "n",
+        "longueur": 18,
+        "valeur": "0"
+      },
+      {
+        "nom": "num_remise",
+        "type": "n",
+        "longueur": 6,
+        "source": "numero_remise"
+      },
+      {
+        "nom": "type_identifiant",
+        "type": "n",
+        "longueur": 1,
+        "source": "type_identifiant"
+      },
+      {
+        "nom": "rib",
+        "type": "an",
+        "longueur": 34,
+        "source": "rib_credite"
+      },
+      {
+        "nom": "devise",
+        "type": "an",
+        "longueur": 3,
+        "source": "devise"
+      },
+      {
+        "nom": "total",
+        "type": "n",
+        "longueur": 12,
+        "source": "total_centimes"
+      },
+      {
+        "nom": "ind_ajuste",
+        "type": "an",
+        "longueur": 1,
+        "valeur": "0"
+      },
+      {
+        "nom": "nb_cheques",
+        "type": "n",
+        "longueur": 5,
+        "source": "nombre_cheques"
+      },
+      {
+        "nom": "reserve",
+        "type": "an",
+        "longueur": 130,
+        "valeur": ""
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+app = "tlmc-remise"
+primary_region = "cdg"
+swap_size_mb = 512
+
+[build]
+
+[env]
+  TLMC_UTILISATEUR = "atlas"
+  # lecture de 50 lots de 50 chèques en parallèle : 8 vCPU dédiés
+  TLMC_WORKERS = "12"
+  TLMC_CONCURRENCE_GLOBALE = "64"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # machine performance-8x : arrêtée hors usage (réveil automatique à la 1re requête)
+  min_machines_running = 0
+
+[[mounts]]
+  source = "tlmc_sessions"
+  destination = "/app/sessions"
+
+[[vm]]
+  size = "performance-8x"
+  memory = "16384mb"

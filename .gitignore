@@ -1,0 +1,38 @@
+# --- Secrets : ne doivent JAMAIS être versionnés -----------------------------
+.env
+*/.env
+**/.env
+Login.txt
+**/comptes-utilisateurs.txt
+
+# --- Données clients réelles -------------------------------------------------
+# lots/ contient des scans de chèques et de bons de commande : noms, adresses,
+# montants et lignes CMC7 (= coordonnées bancaires) de clients réels. Même sur
+# un dépôt privé, ces fichiers n'ont rien à faire dans un historique git.
+lots/*
+!lots/.gitkeep
+
+# sessions/ de tlmc-remise : images de chèques et session.json (CMC7, montants).
+**/sessions/*
+!**/sessions/.gitkeep
+
+# --- Environnements et artefacts ---------------------------------------------
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.egg-info/
+
+# --- Sorties de traitement ---------------------------------------------------
+scans/*
+rejets/*
+sortie/*
+!*/.gitkeep
+*.log
+uvicorn.log
+pip-install.log
+
+# --- Divers ------------------------------------------------------------------
+.DS_Store
+Thumbs.db

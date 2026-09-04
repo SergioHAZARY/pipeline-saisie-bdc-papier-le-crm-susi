@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pdftoppm *)",
+      "Bash(pdfinfo *)",
+      "Bash(pdftotext *)",
+      "Bash(pdfimages *)",
+      "Bash(ls *)",
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit"
+    ]
+  }
+}
